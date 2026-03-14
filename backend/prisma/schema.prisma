@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Product {
+  id            String          @id @default(uuid())
+  name          String
+  sku           String          @unique
+  category      String
+  minimum_stock Float
+  Inventory     Inventory[]
+  Movements     Movement[]
+  Ledger        Ledger[]
+  PurchaseOrder PurchaseOrder[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Location {
+  id         String      @id @default(uuid())
+  name       String      @unique
+  warehouse  String
+  position_x Float
+  position_y Float
+  Inventory  Inventory[]
+  LedgerFrom Ledger[]    @relation("LedgerFrom")
+  LedgerTo   Ledger[]    @relation("LedgerTo")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Inventory {
+  id         String   @id @default(uuid())
+  product_id String
+  product    Product  @relation(fields: [product_id], references: [id])
+  location_id String
+  location    Location @relation(fields: [location_id], references: [id])
+  quantity    Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([product_id, location_id])
+}
+
+model Movement {
+  id            String   @id @default(uuid())
+  product_id    String
+  product       Product  @relation(fields: [product_id], references: [id])
+  from_location String?
+  to_location   String?
+  quantity      Float
+  performed_by  String
+  timestamp     DateTime @default(now())
+}
+
+model Ledger {
+  id               String    @id @default(uuid())
+  index            Int       @unique
+  timestamp        DateTime  @default(now())
+  action           String
+  product_id       String?
+  product          Product?  @relation(fields: [product_id], references: [id])
+  quantity         Float?
+  from_location_id String?
+  fromLocation     Location? @relation("LedgerFrom", fields: [from_location_id], references: [id])
+  to_location_id   String?
+  toLocation       Location? @relation("LedgerTo", fields: [to_location_id], references: [id])
+  previous_hash    String
+  hash             String
+}
+
+model PurchaseOrder {
+  id         String   @id @default(uuid())
+  supplier   String
+  product_id String
+  product    Product  @relation(fields: [product_id], references: [id])
+  quantity   Float
+  status     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
